@@ -6,7 +6,11 @@ does all the git work. Standard library only.
 
 ## Install into a repo
 
-From this project:
+From GitHub, with one line (run it inside the repo, or pass its path after `--`):
+
+    curl -fsSL https://raw.githubusercontent.com/Ilya122/CodeChanges/main/install.sh | sh
+
+Or from a copy of this project:
 
     python3 install.py /path/to/repo
 
