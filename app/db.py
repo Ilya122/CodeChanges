@@ -42,11 +42,12 @@ CREATE TABLE IF NOT EXISTS events (
 
 class Store:
     def __init__(self, repo):
-        folder = Path(repo) / ".codechange"
-        folder.mkdir(exist_ok=True)
-        # self-ignoring folder, so the DB never shows up in the repo's own git status
+        folder = Path(repo) / ".codechanges"
+        data = folder / "data"
+        data.mkdir(parents=True, exist_ok=True)
+        # self-ignoring folder, so nothing in it ever shows up in the repo's own git status
         (folder / ".gitignore").write_text("*\n")
-        self.path = folder / "db.sqlite"
+        self.path = data / "db.sqlite"
         with self._conn() as conn:
             conn.executescript(SCHEMA)
 
