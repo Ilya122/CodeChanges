@@ -23,14 +23,25 @@ def data_dir(repo=None):
     return (repo or repo_root()) / ".codechanges" / "data"
 
 
+def load(repo=None):
+    path = data_dir(repo) / "config.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def save(repo=None, **updates):
+    folder = data_dir(repo)
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "config.json"
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({**load(repo), **updates}) + "\n")
+    tmp.replace(path)
+
+
 def port(repo=None):
     env = os.environ.get("CODECHANGES_PORT")
     if env:
         return int(env)
-    path = data_dir(repo) / "config.json"
-    if path.exists():
-        return json.loads(path.read_text()).get("port", DEFAULT_PORT)
-    return DEFAULT_PORT
+    return load(repo).get("port", DEFAULT_PORT)
 
 
 def base_url(repo=None):
@@ -57,6 +68,4 @@ def pick_port(repo):
 
 
 def save_port(repo, value):
-    folder = data_dir(repo)
-    folder.mkdir(parents=True, exist_ok=True)
-    (folder / "config.json").write_text(json.dumps({"port": value}) + "\n")
+    save(repo, port=value)
