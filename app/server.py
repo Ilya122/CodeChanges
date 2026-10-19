@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 import config
+import modes
 from db import Store
 
 HOST = "127.0.0.1"
@@ -61,6 +62,12 @@ button.apply { background: var(--low); border-color: var(--low); color: #fff; }
 button.deny { color: var(--high); border-color: var(--high); }
 kbd { font: 11px ui-monospace, monospace; opacity: .7; margin-left: 4px; }
 .muted { color: var(--muted); }
+.mode { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { margin: 0; border: 0; border-radius: 0; padding: 4px 14px; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.on { background: var(--hunk-bg); color: var(--hunk-fg); font-weight: 600; }
+.mode-sum { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
 """
 
 SCRIPT = """
@@ -85,6 +92,27 @@ box.addEventListener("keydown", e => {
   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) decide("revise");
 });
 """
+
+
+MODE_SCRIPT = """
+async function setMode(mode) {
+  const r = await fetch("/api/settings", {method: "POST", body: JSON.stringify({mode})});
+  if (r.ok) location.reload(); else alert((await r.json()).error);
+}
+"""
+
+
+def render_mode_bar():
+    info = modes.describe()
+    buttons = "".join(
+        f'<button class="{"on" if name == info["mode"] else ""}" onclick="setMode(\'{name}\')">'
+        f'{modes.MODES[name]["label"]}</button>'
+        for name in modes.MODES
+    )
+    return (
+        f'<div class="mode"><span class="muted">Decision level</span><div class="seg">{buttons}</div></div>'
+        f'<p class="mode-sum">{html.escape(info["summary"])}</p>'
+    )
 
 
 def render_patch(file, patch):
@@ -163,7 +191,8 @@ def render_page(store):
         '<!doctype html><html><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>CodeChange</title><style>{STYLE}</style></head>"
-        f"<body{attr}><main>{render_strip(counts)}{content}</main>{script}</body></html>"
+        f"<body{attr}><main>{render_mode_bar()}{render_strip(counts)}{content}</main>"
+        f"<script>{MODE_SCRIPT}</script>{script}</body></html>"
     )
 
 
@@ -208,10 +237,15 @@ class Handler(BaseHTTPRequestHandler):
                 if found or time.monotonic() >= deadline:
                     return self._json(200, found)
                 time.sleep(0.5)
+        if parts == ["api", "settings"]:
+            if method == "POST":
+                modes.set_mode(self._body().get("mode"))
+            return self._json(200, modes.describe())
         if parts[:2] != ["api", "blocks"] and parts != ["api", "status"]:
             raise LookupError("not found")
         if parts == ["api", "status"]:
-            return self._json(200, {"status": "ok", "repo": str(REPO), "counts": store.counts()})
+            return self._json(200, {"status": "ok", "repo": str(REPO), "counts": store.counts(),
+                                    "mode": modes.current()})
         if len(parts) == 2:
             if method == "GET":
                 statuses = query["status"].split(",") if "status" in query else None
