@@ -1,16 +1,15 @@
 import html
 import json
-import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+import config
 from db import Store
 
 HOST = "127.0.0.1"
-PORT = 34159
-REPO = Path(os.environ.get("CODECHANGE_REPO", Path.cwd()))
+REPO = config.repo_root()
+PORT = config.port(REPO)
 
 STYLE = """
 :root {
