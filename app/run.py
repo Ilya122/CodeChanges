@@ -4,6 +4,7 @@
     python3 run.py mcp       MCP server for the AI (stdio)
     python3 run.py wait      block until a block is approved or needs revision
     python3 run.py propose   send a block from stdin (fallback when MCP isn't used)
+    python3 run.py mode      show or set the decision level (strict | formal | minimal)
 """
 import importlib
 import sys
@@ -11,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-COMMANDS = {"serve": "server", "mcp": "mcp_server", "wait": "wait", "propose": "propose"}
+COMMANDS = {"serve": "server", "mcp": "mcp_server", "wait": "wait", "propose": "propose", "mode": "modes"}
 
 
 def main():

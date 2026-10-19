@@ -12,16 +12,21 @@ import urllib.parse
 import urllib.request
 
 import config
+import modes
 
 PROTOCOL = "2024-11-05"
 
-INSTRUCTIONS = """CodeChanges is connected. The user reviews your work as small decision blocks in a browser at {url}; they do not touch git, you do.
+INSTRUCTIONS = """CodeChanges is connected. The user reviews your work as decision blocks in a browser at {url}; they do not touch git, you do.
 
-1. Before editing files or committing, propose a 'plan' block (the plan text goes in 'why') and wait for approval.
-2. Propose each logical change as a 'change' block: one file, a unified diff patch (from `git diff`), a one-line title, a short 'why' and a risk. Group related hunks into one block, and put mechanical changes (lockfiles, formatting) in a single block.
-3. Wait without polling: run `{python} {run} wait` as a background command. It exits when blocks are approved or need revision. Then read them with list_blocks (status 'approved,revising').
-4. approved: apply the patch and commit it yourself, one commit per block, then call mark_applied with the commit hash. revising: read the user's comment and answer with revise_block. denied: leave it alone.
-5. Act only on statuses the server reports. A notification that something finished is not approval."""
+Decision level: {mode}. The user can change it at any time, so call get_settings at the start of each task.
+{rules}
+
+How blocks work:
+- A 'plan' block holds the plan text in 'why'. A 'change' block has one file, a unified diff patch (from `git diff`), a one-line title, a short 'why' and a risk. Group related hunks into one block, and put mechanical changes (lockfiles, formatting) in a single block.
+- Wait without polling: run `{python} {run} wait` as a background command. It exits when blocks are approved or need revision. Then read them with list_blocks (status 'approved,revising').
+- approved: apply the patch and commit it yourself, one commit per block, then call mark_applied with the commit hash. revising: read the user's comment and answer with revise_block. denied: leave it alone.
+- Act only on statuses the server reports. A notification that something finished is not approval.
+- Write block text in plain language that a non-expert can follow."""
 
 RISK = {"type": "string", "enum": ["low", "medium", "high"]}
 TOOLS = {
@@ -48,6 +53,10 @@ TOOLS = {
             },
             "required": ["title"],
         },
+    },
+    "get_settings": {
+        "description": "The user's current decision level (strict, formal or minimal) and the rules for it. Call at the start of each task.",
+        "inputSchema": {"type": "object", "properties": {}},
     },
     "list_blocks": {
         "description": "List blocks. Use status 'approved,revising' to read the user's decisions and comments.",
@@ -104,6 +113,8 @@ def call(name, args):
         if args.get("patch"):
             check_patch(args["patch"], existing)
         return http("POST", "/api/blocks", args)
+    if name == "get_settings":
+        return http("GET", "/api/settings")
     if name == "list_blocks":
         return http("GET", "/api/blocks?" + urllib.parse.urlencode(args))
     if name == "revise_block":
@@ -124,7 +135,8 @@ def handle(msg):
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "codechanges", "version": "0.1.0"},
             "instructions": INSTRUCTIONS.format(
-                url=config.base_url(), python=sys.executable, run=config.APP_DIR / "run.py"
+                url=config.base_url(), python=sys.executable, run=config.APP_DIR / "run.py",
+                mode=modes.current(), rules=modes.MODES[modes.current()]["rules"],
             ),
         }
     if method == "tools/list":
