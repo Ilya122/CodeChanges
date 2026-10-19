@@ -1,9 +1,32 @@
-# CodeChange
+# CodeChanges
 
-A small local server for reviewing AI-proposed code changes as decision blocks.
+A small local extension for reviewing AI-proposed code changes. The AI proposes
+small decision blocks; you apply, deny or revise each one in the browser. The AI
+does all the git work. Standard library only.
 
-## Run
+## Install into a repo
 
-    uv run main.py
+From this project:
 
-Open http://127.0.0.1:34159 and Apply, Revise or Deny each block.
+    python3 install.py /path/to/repo
+
+This creates `/path/to/repo/.codechanges/` (git-ignored by its own `.gitignore`)
+and registers the MCP server with Claude Code in local scope. Nothing else in the
+repo is touched. Pass `--no-register` to skip registration and get the command to
+run yourself. Run it again to update.
+
+To uninstall, delete `.codechanges/` and run
+`claude mcp remove codechanges --scope local` from the repo.
+
+## Use
+
+Start the review page from the repo:
+
+    python3 .codechanges/app/run.py serve
+
+and open the address it prints (each repo gets its own port, saved in
+`.codechanges/data/config.json`). Ask Claude to make changes as usual: it proposes
+a plan, then one block per change, and waits for your decisions.
+
+`run.py` also has `mcp` (the MCP server), `wait` (block until you decide) and
+`propose` (send a block without MCP).
