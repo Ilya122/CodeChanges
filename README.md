@@ -10,6 +10,11 @@ From this project:
 
     python3 install.py /path/to/repo
 
+Or build one file and carry it anywhere, no clone needed:
+
+    python3 build.py                       # writes dist/codechanges.pyz
+    python3 codechanges.pyz /path/to/repo
+
 This creates `/path/to/repo/.codechanges/` (git-ignored by its own `.gitignore`)
 and registers the MCP server with Claude Code in local scope. Nothing else in the
 repo is touched. Pass `--no-register` to skip registration and get the command to
