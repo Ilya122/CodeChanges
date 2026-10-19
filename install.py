@@ -1,6 +1,7 @@
 """Install the CodeChanges extension into a git repo as <repo>/.codechanges.
 
     python3 install.py [path/to/repo] [--no-register]
+    python3 codechanges.pyz [path/to/repo] [--no-register]   (one file, see build.py)
 
 Nothing outside .codechanges/ is touched. The MCP server is registered with
 Claude Code in local scope, which lives in your user config, not in the repo.
@@ -10,11 +11,25 @@ Run it again to update. To uninstall: delete .codechanges and run
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parent / "app"
 sys.path.insert(0, str(SOURCE))
 import config  # noqa: E402
+
+
+def copy_app(app):
+    """Copy the app files from the .pyz archive we run from, or from the source tree."""
+    archive = Path(sys.argv[0])
+    if zipfile.is_zipfile(archive):
+        app.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive) as z:
+            for name in z.namelist():
+                if name.startswith("app/") and name.endswith(".py"):
+                    (app / Path(name).name).write_bytes(z.read(name))
+    else:
+        shutil.copytree(SOURCE, app, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
 
 
 def git_root(path):
@@ -33,7 +48,7 @@ def main():
     home = root / ".codechanges"
     app = home / "app"
 
-    shutil.copytree(SOURCE, app, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
+    copy_app(app)
     (home / ".gitignore").write_text("*\n")
     if not (config.data_dir(root) / "config.json").exists():
         config.save_port(root, config.pick_port(root))
