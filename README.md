@@ -39,3 +39,14 @@ a plan, then one block per change, and waits for your decisions.
 
 `run.py` also has `mcp` (the MCP server), `wait` (block until you decide) and
 `propose` (send a block without MCP).
+
+## Decision levels
+
+How much the AI asks before changing things. Switch it at the top of the review page,
+or with `python3 .codechanges/app/run.py mode [strict|formal|minimal]`.
+
+- **Strict** (default): every code change comes to you as a card.
+- **Formal**: cards for design, database and production-affecting changes; routine code the AI does directly.
+- **Minimal**: cards only for real decisions, such as forks and anything that can't be undone.
+
+The AI controls git, so the levels are rules it follows, not something the server can force.
